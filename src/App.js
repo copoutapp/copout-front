@@ -135,7 +135,17 @@ class App extends React.Component {
 
   // Popup on marker with information of the event
   onEachFeature(feature, layer) {
-    const popupContent = `<Popup><h5>${feature.properties.title}</h5><p>${feature.properties.message}</p></pre></Popup>`
+    let dateString = "";
+    if (feature.properties.temp) {
+      let date = new Date(Date.parse(feature.properties.time));
+      let localDate = date.toLocaleString('us', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      dateString = ` <${localDate}>`
+    }
+    const popupContent = `<Popup><h5>${feature.properties.title}${dateString}</h5><p>${feature.properties.message}</p></pre></Popup>`
     layer.bindPopup(popupContent)
   }
   
@@ -174,7 +184,8 @@ class App extends React.Component {
             "title": item.title,
             "message": item.message,
             "type": item.event_type,
-            "time": item.event_time
+            "time": item.event_time,
+            "temp": item.temp
         },
         "geometry": {
             "type": "Point",
