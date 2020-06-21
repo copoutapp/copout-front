@@ -117,7 +117,7 @@ class App extends React.Component {
         'Content-Type': 'application/json'
       }
     };
-    const response = await fetch(`${this.state.apiEndpint}/api/v0/event`, requestOptions);
+    const response = await fetch(`${this.state.apiEndpint}/api/v0/event/recent`, requestOptions);
     const data = await response.json();
     this.setState({ data: data, loaded: true });
     console.log('loaded initial data from backend');
@@ -144,6 +144,23 @@ class App extends React.Component {
     return L.marker(latlng, {icon: EventIcons.getIcon(feature.properties.type)}); 
   }
   
+  // removes all temp events that are older than 2 hours
+  removeOldEvents(rawdata) {
+    let cleanedData = [];
+    let currentTime = Date.now();
+    rawdata.forEach((item) => {
+      if (item.temp) { 
+        let time = Date.parse(item.event_time);
+        if (currentTime - time <= 7200000) {
+          cleanedData.push(item);
+        }
+      } else {
+        cleanedData.push(item);
+      }
+    })
+    return cleanedData
+  }
+
   // Construct GeoJson from raw data
   convertDataToGeoJson(rawdata) {
     // construct a GeoJSON
@@ -193,7 +210,8 @@ class App extends React.Component {
     const { BaseLayer, Overlay } = LayersControl;
     let layerGroup = [];
     if (this.state.loaded) {
-      let data = this.convertDataToGeoJson(rawdata);
+      let newdata = this.removeOldEvents(rawdata);
+      let data = this.convertDataToGeoJson(newdata);
       // console.log(data)
       for (var key in data) {
         layerGroup.push(<Overlay checked name={key}>
