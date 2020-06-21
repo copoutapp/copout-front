@@ -68,6 +68,7 @@ class App extends React.Component {
       this.cookies = new Cookies();
 
       this.debug =  false;
+      this.secureCookie = true;
 
       this.state = {
         // this is for toronto
@@ -234,6 +235,7 @@ class App extends React.Component {
     // if no, it is an auth token, maybe
     let token = this.state.loginToken;
     let uuid_re = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    let cookieOptions = { secure: this.secureCookie }
     if (uuid_re.test(token)) {
       const requestOptions = {
         method: 'PUT',
@@ -252,7 +254,7 @@ class App extends React.Component {
           return response.json()
         })
         .then(json => {
-          this.cookies.set('validatedToken', json.user)
+          this.cookies.set('validatedToken', json.user, cookieOptions)
           this.setState({ 
             showSignupSuccess: true,
             validatedToken: json.user,
@@ -283,7 +285,7 @@ class App extends React.Component {
           return response.json()
         })
         .then(json => {
-          this.cookies.set('validatedToken', token)
+          this.cookies.set('validatedToken', token, cookieOptions)
           this.setState({ 
             showLoginSuccess: true,
             validatedToken: token,
