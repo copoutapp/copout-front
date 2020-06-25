@@ -720,14 +720,18 @@ class App extends React.Component {
               <a href="https://github.com/copoutapp/copout-front"> Github </a>
               page.
             </p>
-            <p></p>
           </Modal.Body>
 
           <Modal.Header>
-            <Modal.Title id="AboutHead">About This App</Modal.Title>
+            <Modal.Title id="AboutHead">Privacy</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <p>This is the about section.</p>
+            <p>
+              We take your privacy and anonymity seriously. We use cookies, but
+              we do not do any cross site-tracking or analytics. We don't store
+              or transmit any PII (Personally Identifiable Information), or any
+              other sensitive information.
+            </p>
           </Modal.Body>
         </Modal>
       </>
