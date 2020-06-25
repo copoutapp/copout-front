@@ -50,7 +50,7 @@
   }
 }
 
-@import url("https://fonts.googleapis.com/css2?family=Raleway:wght@800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap");
 #AboutHead {
   font-family: "Raleway", sans-serif;
   font-weight: bold;
@@ -58,5 +58,48 @@
 
 #dropdown-button-drop-up {
   background-color: #235494;
+  border-color: #235494;
   font-family: "Raleway", sans-serif;
+}
+
+.dropdown-menu.show {
+  background-color: #235494bb;
+}
+
+.dropdown-item {
+  color: white;
+  font-family: "Raleway";
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: #23549477;
+  color: white;
+}
+
+.modal-content {
+  background-color: #000000aa;
+  color: #ffffff;
+}
+
+h5 {
+  font-family: "Raleway", sans-serif;
+}
+
+popup p {
+  font-size: medium;
+}
+
+.close {
+  color: #ffffff;
+  opacity: 1;
+}
+
+button .close :hover {
+  color: #ffffff;
+}
+
+.logo-btm {
+  opacity: 0.2;
+  height: 25%;
+  width: 25%;
 }

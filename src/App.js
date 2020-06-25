@@ -13,6 +13,7 @@ import L from "leaflet";
 import hash from "object-hash";
 import {
   Button,
+  Image,
   Modal,
   Form,
   Toast,
@@ -604,7 +605,7 @@ class App extends React.Component {
           <LayersControl position="topleft">
             <TileLayer
               attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              url="https://api.mapbox.com/styles/v1/bigboyonthestreeet/ckbshbiqx0v3x1inyld1izkp5/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYmlnYm95b250aGVzdHJlZWV0IiwiYSI6ImNrYXkzanI4MzBlZDQzMm9hc2dqeGR3dWkifQ.HKcbnYgCvUovWvKfBKElhA"
             />
             {this.constructLayerGroup(this.state.data)}
           </LayersControl>
@@ -734,6 +735,16 @@ class App extends React.Component {
             </p>
           </Modal.Body>
         </Modal>
+        <div
+          style={{
+            position: "absolute",
+            bottom: 20,
+            left: 10,
+            zIndex: 1000,
+          }}
+        >
+          <Image className="logo-btm" src="logo.png" fluid rounded />
+        </div>
       </>
     );
   }
