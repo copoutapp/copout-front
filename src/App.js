@@ -86,8 +86,9 @@ class City {
 
 class Cities {
   static allCitiesArray = [
-    new City("Toronto", [43.6447352, -79.3952525]),
+    new City("Chicago", [41.881735, -87.630648]),
     new City("Minneapolis", [44.980243, -93.264739]),
+    new City("Toronto", [43.6447352, -79.3952525]),
   ];
 
   static allCitiesDict() {
