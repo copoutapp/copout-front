@@ -706,7 +706,7 @@ class App extends React.Component {
           size="lg"
           centered
         >
-          <Modal.Header closeButton>
+          <Modal.Header closeButton id="AboutHead">
             <Modal.Title>About This App</Modal.Title>
           </Modal.Header>
           <Modal.Body>
@@ -717,14 +717,14 @@ class App extends React.Component {
               has proven that activism is necessary to challenge the racist
               status quo. The form of this app was inspired by the HK Live Map
               application. This project is open-source and is available at its
-              <a href="https://github.com/copoutapp/copout-front">Github</a>
+              <a href="https://github.com/copoutapp/copout-front"> Github </a>
               page.
             </p>
             <p></p>
           </Modal.Body>
 
           <Modal.Header>
-            <Modal.Title>About This App</Modal.Title>
+            <Modal.Title id="AboutHead">About This App</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <p>This is the about section.</p>

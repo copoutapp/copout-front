@@ -34,11 +34,11 @@
 }
 
 .modal-bottom {
-  position:fixed;
-  bottom:10px;
-  left:10px;
-  right:10px;
-  margin:0px;
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  margin: 0px;
 }
 
 @keyframes App-logo-spin {
@@ -48,4 +48,15 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Raleway:wght@800&display=swap");
+#AboutHead {
+  font-family: "Raleway", sans-serif;
+  font-weight: bold;
+}
+
+#dropdown-button-drop-up {
+  background-color: #235494;
+  font-family: "Raleway", sans-serif;
 }
