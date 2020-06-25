@@ -20,38 +20,37 @@ import {
   DropdownButton,
   Dropdown,
   Alert,
+  ListGroup,
 } from "react-bootstrap";
 import Cookies from "universal-cookie";
 import packageJson from "../package.json";
 import "./App.css";
 
 class EventIcons {
-  static allEventTypes() {
-    let result = [
-      "Police",
-      "PoliceCar",
-      "RubberBullets",
-      "TearGas",
-      "Roadblock",
-      "Danger",
-      "Safehouse",
-      "Paramedic",
-      "Protester",
-      "Reporter",
-      "Fire",
-      "GoUp",
-      "GoDown",
-      "GoLeft",
-      "GoRight",
-      "PoliceStation",
-      "Hospital",
-      "Unknown",
-    ];
-    return result;
-  }
+  static allEventTypes = [
+    "Police",
+    "PoliceCar",
+    "RubberBullets",
+    "TearGas",
+    "Roadblock",
+    "Danger",
+    "Safehouse",
+    "Paramedic",
+    "Protester",
+    "Reporter",
+    "Fire",
+    "GoUp",
+    "GoDown",
+    "GoLeft",
+    "GoRight",
+    "PoliceStation",
+    "Hospital",
+    "Unknown",
+  ];
+
   static getIcon(eventType) {
     let icons = {};
-    EventIcons.allEventTypes().forEach(function (element, index) {
+    EventIcons.allEventTypes.forEach(function (element, index) {
       icons[element] = new L.Icon({
         iconUrl: `/Icons/${element}.png`,
         iconSize: [36, 36],
@@ -66,7 +65,7 @@ class EventIcons {
   }
   static getImage(eventType) {
     let images = {};
-    EventIcons.allEventTypes().forEach(function (element, index) {
+    EventIcons.allEventTypes.forEach(function (element, index) {
       images[element] = `/Icons/${element}.png`;
     });
 
@@ -74,6 +73,37 @@ class EventIcons {
       return images[eventType];
     } else {
       return images["Unknown"];
+    }
+  }
+}
+
+class City {
+  constructor(name, center) {
+    this.name = name;
+    this.center = center;
+  }
+}
+
+class Cities {
+  static allCitiesArray = [
+    new City("Toronto", [43.6447352, -79.3952525]),
+    new City("Minneapolis", [44.980243, -93.264739]),
+  ];
+
+  static allCitiesDict() {
+    let result = {};
+    this.allCitiesArray.forEach((value, key) => {
+      result[value.name] = value;
+    });
+    return result;
+  }
+
+  // defaults to Toronto if doesn't exist
+  static getCityCenter(cityName) {
+    if (cityName in this.allCitiesDict()) {
+      return this.allCitiesDict()[cityName].center;
+    } else {
+      return this.allCitiesDict()["Toronto"].center;
     }
   }
 }
@@ -86,20 +116,19 @@ class App extends React.Component {
 
     this.debug = false;
     this.secureCookie = true;
+    this.currentCity = this.cookies.get("currentCity");
 
     this.state = {
-      // this is for toronto
-      lat: 43.6447352,
-      lng: -79.3952525,
-      outerBounds: [
-        [43.180978, -79.955601],
-        [44.002954, -78.845571],
-      ],
-      // end toronto
+      // Defaults to Toronto
+      currentLatLng: this.currentCity
+        ? Cities.getCityCenter(this.currentCity)
+        : Cities.getCityCenter("Toronto"),
       zoom: 13,
       loaded: false,
       data: null,
       geojson: null,
+      currentCity: this.currentCity || "",
+      showLocationSelectModal: this.currentCity ? false : true,
       showAboutModal: false,
       showLoginModal: false,
       showSignupSuccess: false,
@@ -123,17 +152,19 @@ class App extends React.Component {
       streamEndpoint: this.debug
         ? "http://127.0.0.1:8000"
         : "https://api.copout.app",
+      //
+      eventSource: null,
     };
 
     this.mapRef = createRef();
-    // this.eventSource = new EventSource('/api/v0/new-event-stream');
-    this.eventSource = new EventSource(
-      `${this.state.streamEndpoint}/api/v0/new-event-stream`
-    );
   }
 
-  async componentDidMount() {
-    // loads some local settings
+  componentDidMount() {
+    this.updateDataSource(this.state.currentCity);
+    this.updateEventSource(this.state.currentCity);
+  }
+
+  updateDataSource(city) {
     // GET mock request using fetch with async/await
     const requestOptions = {
       method: "GET",
@@ -142,15 +173,27 @@ class App extends React.Component {
         "Content-Type": "application/json",
       },
     };
-    const response = await fetch(
-      `${this.state.apiEndpint}/api/v0/event/recent`,
+    fetch(
+      `${this.state.apiEndpint}/api/v0/event/recent/${city}`,
       requestOptions
+    )
+      .then((response) => response.json())
+      .then((json) => {
+        this.setState({ data: json, loaded: true });
+        console.log("loaded initial data from backend");
+      });
+  }
+
+  updateEventSource(city) {
+    console.log("setting new event source to ", city);
+    let eventSource = new EventSource(
+      `${this.state.streamEndpoint}/api/v0/new-event-stream/${city}`
     );
-    const data = await response.json();
-    this.setState({ data: data, loaded: true });
-    console.log("loaded initial data from backend");
-    this.eventSource.onmessage = (e) =>
-      this.updateEventList(JSON.parse(e.data));
+    eventSource.onmessage = (e) => this.updateEventList(JSON.parse(e.data));
+
+    this.setState({
+      eventSource: eventSource,
+    });
   }
 
   updateEventList = (event) => {
@@ -159,7 +202,6 @@ class App extends React.Component {
       latestEvent: event,
       toasts: new Map(this.state.toasts.set(event.uuid, event)),
     });
-    // console.log(this.state.latestEvent)
   };
 
   // Popup on marker with information of the event
@@ -371,13 +413,13 @@ class App extends React.Component {
     let result = "";
     if (!this.state.validatedToken) {
       result = (
-        <Dropdown.Item eventKey="3" onSelect={this.handleLoginModalShow}>
+        <Dropdown.Item eventKey="4" onSelect={this.handleLoginModalShow}>
           Login
         </Dropdown.Item>
       );
     } else {
       result = (
-        <Dropdown.Item eventKey="4" onSelect={this.handleEditToggle}>
+        <Dropdown.Item eventKey="5" onSelect={this.handleEditToggle}>
           <Form>
             <Form.Check
               type="switch"
@@ -404,7 +446,7 @@ class App extends React.Component {
   //
   constructNewEventOptions() {
     let options = [];
-    EventIcons.allEventTypes().forEach(function (element, index) {
+    EventIcons.allEventTypes.forEach(function (element, index) {
       options.push(<option>{element}</option>);
     });
     return options;
@@ -456,6 +498,7 @@ class App extends React.Component {
         message: this.state.newEventMessage,
         lat: this.state.newEventLatLng.lat,
         lng: this.state.newEventLatLng.lng,
+        city: this.state.currentCity,
       }),
     };
     // TBD this is a proxy, need to fix this
@@ -521,8 +564,7 @@ class App extends React.Component {
     let toast = toasts.get(event.target.id);
     if (toast) {
       this.setState({
-        lat: toast.lat,
-        lng: toast.lng,
+        currentLatLng: [toast.lat, toast.lng],
         zoom: this.mapRef.current.leafletElement.getZoom(),
       });
     }
@@ -542,9 +584,46 @@ class App extends React.Component {
     console.log("cookie set to", this.cookies.get("allowEdit"));
   };
 
-  render() {
-    const position = [this.state.lat, this.state.lng];
+  handleLocationSelectShow = (event) => {
+    this.setState({ showLocationSelectModal: true });
+  };
 
+  handleLocationSelectHide = (event) => {
+    this.setState({ showLocationSelectModal: false });
+  };
+
+  handleLocationSelectChanged = (event) => {
+    this.cookies.set("currentCity", event.target.id);
+    this.setState({
+      currentLatLng: Cities.getCityCenter(event.target.id),
+      currentCity: event.target.id,
+      showLocationSelectModal: false,
+    });
+    this.updateDataSource(event.target.id);
+    this.updateEventSource(event.target.id);
+    //
+  };
+
+  constructCitiesListGroup() {
+    let cities = Cities.allCitiesArray;
+    let results = [];
+    cities.forEach((value, key) => {
+      let item = (
+        <ListGroup.Item
+          action
+          onClick={this.handleLocationSelectChanged}
+          eventKey={value.name}
+          id={value.name}
+        >
+          {value.name}
+        </ListGroup.Item>
+      );
+      results.push(item);
+    });
+    return results;
+  }
+
+  render() {
     // Marker for new event
     let marker;
     if (this.state.showNewEventMarker) {
@@ -589,17 +668,23 @@ class App extends React.Component {
               About (v{packageJson.version})
             </Dropdown.Item>
             <Dropdown.Item eventKey="2">Help</Dropdown.Item>
+            <Dropdown.Item
+              eventKey="3"
+              onSelect={this.handleLocationSelectShow}
+            >
+              Change Location
+            </Dropdown.Item>
             {this.constructLoginOrEdit()}
           </DropdownButton>
         </div>
 
         <LeafletMap
-          center={position}
-          maxBounds={this.state.outerBounds}
+          center={this.state.currentLatLng}
           zoom={this.state.zoom}
           zoomControl={false}
           onClick={this.handleMapClick}
           ref={this.mapRef}
+          key={hash(this.state.data)}
         >
           <LayersControl position="topleft">
             <TileLayer
@@ -732,6 +817,22 @@ class App extends React.Component {
               or transmit any PII (Personally Identifiable Information), or any
               other sensitive information.
             </p>
+          </Modal.Body>
+        </Modal>
+
+        <Modal
+          show={this.state.showLocationSelectModal}
+          onHide={this.handleLocationSelectHide}
+          size="lg"
+          backdrop="static"
+          keyboard={false}
+          centered
+        >
+          <Modal.Header>
+            <Modal.Title>Select your location</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <ListGroup>{this.constructCitiesListGroup()}</ListGroup>
           </Modal.Body>
         </Modal>
       </>
