@@ -132,6 +132,7 @@ class App extends React.Component {
       currentCity: this.currentCity || "",
       showLocationSelectModal: this.currentCity ? false : true,
       showAboutModal: false,
+      showHelpModal: false,
       showLoginModal: false,
       showSignupSuccess: false,
       showLoginSuccess: false,
@@ -445,6 +446,14 @@ class App extends React.Component {
     this.setState({ showAboutModal: false });
   };
 
+  handleHelpModalShow = (event) => {
+    this.setState({ showHelpModal: true });
+  };
+
+  handleHelpModalHide = (event) => {
+    this.setState({ showHelpModal: false });
+  };
+
   //
   constructNewEventOptions() {
     let options = [];
@@ -669,7 +678,9 @@ class App extends React.Component {
             <Dropdown.Item eventKey="1" onSelect={this.handleAboutModalShow}>
               About (v{packageJson.version})
             </Dropdown.Item>
-            <Dropdown.Item eventKey="2">Help</Dropdown.Item>
+            <Dropdown.Item eventKey="2" onSelect={this.handleHelpModalShow}>
+              Help
+            </Dropdown.Item>
             <Dropdown.Item
               eventKey="3"
               onSelect={this.handleLocationSelectShow}
@@ -822,6 +833,43 @@ class App extends React.Component {
           </Modal.Body>
         </Modal>
 
+        <Modal
+          show={this.state.showHelpModal}
+          onHide={this.handleHelpModalHide}
+          size="lg"
+          centered
+        >
+          <Modal.Header closeButton id="AboutHead">
+            <Modal.Title>Tutorial</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p>
+              This app allows you to pinpoint active events during a protest on
+              a live map. In order to place events login with an authorized
+              token. Toggle the editing on and tap to add events. Pick a
+              relevant type and message and the event will be visible to you and
+              other users. If you've lost a token, or need other assistance use
+              the contact options below.
+            </p>
+          </Modal.Body>
+
+          <Modal.Header>
+            <Modal.Title id="AboutHead">Contact</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p>Email: copoutapp@gmail.com </p>
+            <p>
+              Twitter: <a href="https://twitter.com/GetCopOut">@GetCopOut</a>
+            </p>
+            <p>
+              Facebook:{" "}
+              <a href="https://www.facebook.com/CopOutApp/">
+                https://www.facebook.com/CopOutApp/
+              </a>
+            </p>
+          </Modal.Body>
+        </Modal>
+
         <div
           style={{
             position: "absolute",
@@ -840,7 +888,11 @@ class App extends React.Component {
           backdrop="static"
           keyboard={false}
           centered
+          dialogClassName="modal-splash"
         >
+          <div id="headline">
+            <Image className="headline-img" src="headline.png" fluid rounded />
+          </div>
           <Modal.Header>
             <Modal.Title>Select your location</Modal.Title>
           </Modal.Header>

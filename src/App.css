@@ -51,14 +51,23 @@
 }
 
 @import url("https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap");
-#AboutHead {
+h4 {
+  font-family: "Raleway", sans-serif;
+  font-weight: bold;
+}
+h5 {
   font-family: "Raleway", sans-serif;
   font-weight: bold;
 }
 
 #dropdown-button-drop-up {
   background-color: #235494;
-  border-color: #235494;
+  border-color: white;
+  font-family: "Raleway", sans-serif;
+}
+
+.modal-body {
+  border-color: white;
   font-family: "Raleway", sans-serif;
 }
 
@@ -77,12 +86,13 @@
 }
 
 .modal-content {
-  background-color: #000000aa;
+  background-color: #235494aa;
   color: #ffffff;
 }
 
-h5 {
-  font-family: "Raleway", sans-serif;
+.list-group button {
+  background-color: #235494;
+  color: white;
 }
 
 popup p {
@@ -102,4 +112,26 @@ button .close :hover {
   opacity: 0.2;
   height: 25%;
   width: 25%;
+}
+
+.modal-splash .modal-content {
+  background-color: #00000000;
+}
+
+.modal-splash .modal-content .modal-header {
+  background-color: #235494aa;
+  color: #ffffff;
+}
+
+.modal-splash .modal-content .modal-body {
+  background-color: #235494aa;
+  color: #ffffff;
+}
+
+#headline {
+  align-self: center;
+}
+
+a {
+  color: #ff5757;
 }
