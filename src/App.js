@@ -661,7 +661,9 @@ class App extends React.Component {
           dialogClassName="modal-bottom"
         >
           <Modal.Header closeButton>
-            <Modal.Title>Report a new event</Modal.Title>
+            <Modal.Title>
+              <h5>Report a new event</h5>
+            </Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Form onSubmit={this.handleNewEventSubmit}>
