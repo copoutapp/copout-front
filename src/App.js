@@ -857,15 +857,16 @@ class App extends React.Component {
             <Modal.Title id="AboutHead">Contact</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <p>Email: copoutapp@gmail.com </p>
+            <p>
+              Email:{" "}
+              <a href="mailto:copoutapp@gmail.com">copoutapp@gmail.com</a>{" "}
+            </p>
             <p>
               Twitter: <a href="https://twitter.com/GetCopOut">@GetCopOut</a>
             </p>
             <p>
               Facebook:{" "}
-              <a href="https://www.facebook.com/CopOutApp/">
-                https://www.facebook.com/CopOutApp/
-              </a>
+              <a href="https://www.facebook.com/CopOutApp/">@CopOutApp</a>
             </p>
           </Modal.Body>
         </Modal>
