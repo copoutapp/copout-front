@@ -72,7 +72,7 @@ h5 {
 }
 
 .dropdown-menu.show {
-  background-color: #235494bb;
+  background-color: #235494d5;
 }
 
 .dropdown-item {
@@ -81,12 +81,12 @@ h5 {
 }
 
 .leaflet-popup-content-wrapper {
-  background-color: #23549477;
+  background-color: #235494d5;
   color: white;
 }
 
 .modal-content {
-  background-color: #235494aa;
+  background-color: #235494d5;
   color: #ffffff;
 }
 
@@ -97,6 +97,7 @@ h5 {
 
 popup p {
   font-size: medium;
+  margin-bottom: 0px !important;
 }
 
 .close {
@@ -119,12 +120,12 @@ button .close :hover {
 }
 
 .modal-splash .modal-content .modal-header {
-  background-color: #235494aa;
+  background-color: #235494d5;
   color: #ffffff;
 }
 
 .modal-splash .modal-content .modal-body {
-  background-color: #235494aa;
+  background-color: #235494d5;
   color: #ffffff;
 }
 
@@ -134,4 +135,13 @@ button .close :hover {
 
 a {
   color: #ff5757;
+}
+
+#delete {
+  position: absolute;
+  bottom: 0px;
+  right: -10px;
+  font-size: x-large;
+  background-color: rgba(0, 0, 0, 0);
+  border-color: rgba(0, 0, 0, 0);
 }

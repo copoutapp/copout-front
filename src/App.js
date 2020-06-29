@@ -89,6 +89,7 @@ class Cities {
   static allCitiesArray = [
     new City("Chicago", [41.881735, -87.630648]),
     new City("Minneapolis", [44.980243, -93.264739]),
+    new City("Seattle", [47.6054116, -122.3348554]),
     new City("Toronto", [43.6447352, -79.3952525]),
   ];
 
@@ -219,7 +220,12 @@ class App extends React.Component {
       });
       dateString = ` <${localDate}>`;
     }
-    const popupContent = `<Popup><h5>${feature.properties.title}${dateString}</h5><p>${feature.properties.message}</p></pre></Popup>`;
+    const popupContent = `
+      <Popup>
+        <h5>${feature.properties.title}${dateString}</h5>
+        <p>${feature.properties.message}</p>
+        <Button id="delete" variant="primary">🗑️</Button>
+      </Popup>`;
     layer.bindPopup(popupContent);
   }
 
