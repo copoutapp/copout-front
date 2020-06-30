@@ -140,7 +140,7 @@ a {
 #delete {
   position: absolute;
   bottom: 0px;
-  right: -10px;
+  right: 0px;
   font-size: x-large;
   background-color: rgba(0, 0, 0, 0);
   border-color: rgba(0, 0, 0, 0);

@@ -7,7 +7,8 @@ import {
   TileLayer,
   LayerGroup,
   LayersControl,
-  GeoJSON,
+  FeatureGroup,
+  Popup,
 } from "react-leaflet";
 import L from "leaflet";
 import hash from "object-hash";
@@ -129,6 +130,7 @@ class App extends React.Component {
       zoom: 13,
       loaded: false,
       data: null,
+      myEvents: [],
       geojson: null,
       currentCity: this.currentCity || "",
       showLocationSelectModal: this.currentCity ? false : true,
@@ -141,6 +143,8 @@ class App extends React.Component {
       loginToken: "",
       validatedToken: this.cookies.get("validatedToken") || "",
       allowEdit: this.cookies.get("allowEdit") == "true" || false,
+      showDeleteModal: false,
+      deleteEventTarget: "",
       showNewEventModal: false,
       showNewEventMarker: false,
       newEventLatLng: null,
@@ -166,7 +170,23 @@ class App extends React.Component {
   componentDidMount() {
     this.updateDataSource(this.state.currentCity);
     this.updateEventSource(this.state.currentCity);
+    this.updateMyEventList(this.state.currentCity);
   }
+
+  // handles recentering the map after move
+  onMoveEnd = (event) => {
+    // console.log("moved", event.target.getCenter());
+    this.setState({
+      currentLatLng: event.target.getCenter(),
+    });
+  };
+
+  onZoomEnd = (event) => {
+    // console.log("moved", event.target.getCenter());
+    this.setState({
+      zoom: event.target.getZoom(),
+    });
+  };
 
   updateDataSource(city) {
     // GET mock request using fetch with async/await
@@ -208,32 +228,84 @@ class App extends React.Component {
     });
   };
 
-  // Popup on marker with information of the event
-  onEachFeature(feature, layer) {
-    let dateString = "";
-    if (feature.properties.temp) {
-      let date = new Date(Date.parse(feature.properties.time));
-      let localDate = date.toLocaleString("us", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      dateString = ` <${localDate}>`;
+  // this sets what is allowed to be edited by the currentuser
+  updateMyEventList(city) {
+    if (this.state.validatedToken) {
+      const requestOptions = {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Token ${this.state.validatedToken}`,
+        },
+      };
+      fetch(
+        `${this.state.apiEndpint}/api/v0/event/myrecent/${city}`,
+        requestOptions
+      )
+        .then((response) => response.json())
+        .then((json) => {
+          let result = [];
+          json.forEach((item) => {
+            result.push(item.uuid);
+          });
+          this.setState({ myEvents: result });
+          console.log("loaded my events from backend");
+        });
     }
-    const popupContent = `
-      <Popup>
-        <h5>${feature.properties.title}${dateString}</h5>
-        <p>${feature.properties.message}</p>
-        <Button id="delete" variant="primary">🗑️</Button>
-      </Popup>`;
-    layer.bindPopup(popupContent);
   }
 
-  // Icon for marker
-  pointToLayer(feature, latlng) {
-    return L.marker(latlng, {
-      icon: EventIcons.getIcon(feature.properties.type),
+  handleDeleteModalShow = (event) => {
+    this.setState({
+      showDeleteModal: true,
+      deleteEventTarget: event.currentTarget.id,
     });
+  };
+
+  handleDeleteModalHide = (event) => {
+    this.setState({ showDeleteModal: false, deleteEventTarget: "" });
+  };
+
+  handleDeleteSubmit = (event) => {
+    this.setState({
+      data: this.removeEvent(this.state.data, this.state.deleteEventTarget),
+      showDeleteModal: false,
+      deleteEventTarget: "",
+    });
+  };
+
+  removeEvent(rawdata, eventId) {
+    const requestOptions = {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Token ${this.state.validatedToken}`,
+      },
+      body: JSON.stringify({
+        visible: false,
+      }),
+    };
+    fetch(
+      `${this.state.apiEndpint}/api/v0/event/edit/${eventId}`,
+      requestOptions
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw response;
+        }
+        return response.json();
+      })
+      .then((json) => {})
+      .catch((response) => console.log(response));
+    let cleanedData = [];
+    rawdata.forEach((item) => {
+      if (item.uuid == eventId) {
+      } else {
+        cleanedData.push(item);
+      }
+    });
+    return cleanedData;
   }
 
   // removes all temp events that are older than 2 hours
@@ -293,7 +365,6 @@ class App extends React.Component {
     return cleanedgeojson;
   }
 
-  // Render the markers from GeoJSON
   constructLayerGroup(rawdata) {
     const { BaseLayer, Overlay } = LayersControl;
     let layerGroup = [];
@@ -301,17 +372,55 @@ class App extends React.Component {
       let newdata = this.removeOldEvents(rawdata);
       let data = this.convertDataToGeoJson(newdata);
       // console.log(data)
-      for (var key in data) {
+      for (let key in data) {
+        let events = [];
+        let eventArray = data[key].features;
+        eventArray.forEach((feature) => {
+          let dateString = "";
+          if (feature.properties.temp) {
+            let date = new Date(Date.parse(feature.properties.time));
+            let localDate = date.toLocaleString("us", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            });
+            dateString = ` <${localDate}>`;
+          }
+          let deleteButton = "";
+          if (this.state.myEvents.includes(feature.properties.uuid)) {
+            deleteButton = (
+              <Button
+                id={feature.properties.uuid}
+                onClick={this.handleDeleteModalShow}
+              >
+                🗑️
+              </Button>
+            );
+          }
+
+          events.push(
+            <FeatureGroup>
+              <Popup>
+                <h5>
+                  {feature.properties.title}
+                  {dateString}
+                </h5>
+                <p>{feature.properties.message}</p>
+                {deleteButton}
+              </Popup>
+              <Marker
+                position={[
+                  feature.geometry.coordinates[1],
+                  feature.geometry.coordinates[0],
+                ]}
+                icon={EventIcons.getIcon(key)}
+              />
+            </FeatureGroup>
+          );
+        });
         layerGroup.push(
           <Overlay checked name={key}>
-            <LayerGroup>
-              <GeoJSON
-                key={hash(this.state.latestEvent)}
-                pointToLayer={this.pointToLayer}
-                data={data[key]}
-                onEachFeature={this.onEachFeature}
-              />
-            </LayerGroup>
+            <LayerGroup>{events}</LayerGroup>
           </Overlay>
         );
       }
@@ -534,6 +643,7 @@ class App extends React.Component {
           newEventTitle: "",
           newEventMessage: "",
           newEventType: "Unknown",
+          myEvents: [...this.state.myEvents, json.uuid],
         });
       })
       .catch((response) => console.log(response));
@@ -618,6 +728,7 @@ class App extends React.Component {
     });
     this.updateDataSource(event.target.id);
     this.updateEventSource(event.target.id);
+    this.updateMyEventList(event.target.id);
     //
   };
 
@@ -704,6 +815,8 @@ class App extends React.Component {
           onClick={this.handleMapClick}
           ref={this.mapRef}
           key={hash(this.state.data)}
+          onMoveEnd={this.onMoveEnd}
+          onZoomEnd={this.onZoomEnd}
         >
           <LayersControl position="topleft">
             <TileLayer
@@ -905,6 +1018,26 @@ class App extends React.Component {
           </Modal.Header>
           <Modal.Body>
             <ListGroup>{this.constructCitiesListGroup()}</ListGroup>
+          </Modal.Body>
+        </Modal>
+
+        <Modal
+          show={this.state.showDeleteModal}
+          onHide={this.handleDeleteModalHide}
+          size="lg"
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Delete this?</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Button
+              variant="primary"
+              type="submit"
+              onClick={this.handleDeleteSubmit}
+            >
+              Delete
+            </Button>
           </Modal.Body>
         </Modal>
       </>
