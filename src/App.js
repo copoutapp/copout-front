@@ -168,26 +168,31 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    this.updateDataSource(this.state.currentCity);
-    this.updateEventSource(this.state.currentCity);
-    this.updateMyEventList(this.state.currentCity);
+    this.reloadData(this.state.currentCity);
   }
 
-  // handles recentering the map after move
+  // handles saving map center change to state
   onMoveEnd = (event) => {
-    // console.log("moved", event.target.getCenter());
     this.setState({
       currentLatLng: event.target.getCenter(),
     });
   };
 
+  // handles saving zoom change to state
   onZoomEnd = (event) => {
-    // console.log("moved", event.target.getCenter());
     this.setState({
       zoom: event.target.getZoom(),
     });
   };
 
+  // fully reloads all data from server
+  reloadData(city) {
+    this.updateDataSource(city);
+    this.updateEventSource(city);
+    this.updateMyEventList(city);
+  }
+
+  // loads a fresh copy of all event data from server
   updateDataSource(city) {
     // GET mock request using fetch with async/await
     const requestOptions = {
@@ -208,6 +213,7 @@ class App extends React.Component {
       });
   }
 
+  // start a new connection for new event push notifications
   updateEventSource(city) {
     console.log("setting new event source to ", city);
     let eventSource = new EventSource(
@@ -220,6 +226,7 @@ class App extends React.Component {
     });
   }
 
+  // helper function that adds new event to state.data
   updateEventList = (event) => {
     this.setState({
       data: [...this.state.data, event],
@@ -228,7 +235,7 @@ class App extends React.Component {
     });
   };
 
-  // this sets what is allowed to be edited by the currentuser
+  // loads a fresh copy of myeventlist, which allows editing of events created by current user
   updateMyEventList(city) {
     if (this.state.validatedToken) {
       const requestOptions = {
@@ -266,6 +273,7 @@ class App extends React.Component {
     this.setState({ showDeleteModal: false, deleteEventTarget: "" });
   };
 
+  // removes an event from state.data
   handleDeleteSubmit = (event) => {
     this.setState({
       data: this.removeEvent(this.state.data, this.state.deleteEventTarget),
@@ -274,6 +282,7 @@ class App extends React.Component {
     });
   };
 
+  // the webcall to server to remove event
   removeEvent(rawdata, eventId) {
     const requestOptions = {
       method: "PATCH",
@@ -365,6 +374,7 @@ class App extends React.Component {
     return cleanedgeojson;
   }
 
+  // renders the layergroup for leaflet
   constructLayerGroup(rawdata) {
     const { BaseLayer, Overlay } = LayersControl;
     let layerGroup = [];
@@ -442,6 +452,7 @@ class App extends React.Component {
     this.setState({ loginToken: event.target.value });
   };
 
+  // log in with a token
   handleLoginSubmit = (event) => {
     // check if valid token exist, if yes, do nothing
     if (this.state.validatedToken) {
@@ -526,7 +537,7 @@ class App extends React.Component {
     // this.setState({ showLoginModal: false });
   };
 
-  //
+  // change menu item between login and edit
   constructLoginOrEdit() {
     let result = "";
     if (!this.state.validatedToken) {
@@ -610,6 +621,7 @@ class App extends React.Component {
     this.setState({ newEventMessage: event.target.value });
   };
 
+  // webcall for new event
   handleNewEventSubmit = (event) => {
     const requestOptions = {
       method: "POST",
@@ -686,6 +698,7 @@ class App extends React.Component {
     return results;
   }
 
+  // change map center to toast event location on click
   handleToastOnClick = (event) => {
     let toasts = this.state.toasts;
     let toast = toasts.get(event.target.id);
@@ -726,9 +739,7 @@ class App extends React.Component {
       currentCity: event.target.id,
       showLocationSelectModal: false,
     });
-    this.updateDataSource(event.target.id);
-    this.updateEventSource(event.target.id);
-    this.updateMyEventList(event.target.id);
+    this.reloadData(event.target.id);
     //
   };
 
