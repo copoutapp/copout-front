@@ -7,7 +7,8 @@ import {
   TileLayer,
   LayerGroup,
   LayersControl,
-  GeoJSON,
+  FeatureGroup,
+  Popup,
 } from "react-leaflet";
 import L from "leaflet";
 import hash from "object-hash";
@@ -89,6 +90,7 @@ class Cities {
   static allCitiesArray = [
     new City("Chicago", [41.881735, -87.630648]),
     new City("Minneapolis", [44.980243, -93.264739]),
+    new City("Seattle", [47.6054116, -122.3348554]),
     new City("Toronto", [43.6447352, -79.3952525]),
   ];
 
@@ -128,6 +130,7 @@ class App extends React.Component {
       zoom: 13,
       loaded: false,
       data: null,
+      myEvents: [],
       geojson: null,
       currentCity: this.currentCity || "",
       showLocationSelectModal: this.currentCity ? false : true,
@@ -140,6 +143,8 @@ class App extends React.Component {
       loginToken: "",
       validatedToken: this.cookies.get("validatedToken") || "",
       allowEdit: this.cookies.get("allowEdit") == "true" || false,
+      showDeleteModal: false,
+      deleteEventTarget: "",
       showNewEventModal: false,
       showNewEventMarker: false,
       newEventLatLng: null,
@@ -163,10 +168,31 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    this.updateDataSource(this.state.currentCity);
-    this.updateEventSource(this.state.currentCity);
+    this.reloadData(this.state.currentCity);
   }
 
+  // handles saving map center change to state
+  onMoveEnd = (event) => {
+    this.setState({
+      currentLatLng: event.target.getCenter(),
+    });
+  };
+
+  // handles saving zoom change to state
+  onZoomEnd = (event) => {
+    this.setState({
+      zoom: event.target.getZoom(),
+    });
+  };
+
+  // fully reloads all data from server
+  reloadData(city) {
+    this.updateDataSource(city);
+    this.updateEventSource(city);
+    this.updateMyEventList(city);
+  }
+
+  // loads a fresh copy of all event data from server
   updateDataSource(city) {
     // GET mock request using fetch with async/await
     const requestOptions = {
@@ -187,6 +213,7 @@ class App extends React.Component {
       });
   }
 
+  // start a new connection for new event push notifications
   updateEventSource(city) {
     console.log("setting new event source to ", city);
     let eventSource = new EventSource(
@@ -199,6 +226,7 @@ class App extends React.Component {
     });
   }
 
+  // helper function that adds new event to state.data
   updateEventList = (event) => {
     this.setState({
       data: [...this.state.data, event],
@@ -207,30 +235,90 @@ class App extends React.Component {
     });
   };
 
-  // Popup on marker with information of the event
-  onEachFeature(feature, layer) {
-    let dateString = "";
-    if (feature.properties.temp) {
-      let date = new Date(Date.parse(feature.properties.time));
-      let localDate = date.toLocaleString("us", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      dateString = ` <${localDate}>`;
+  // loads a fresh copy of myeventlist, which allows editing of events created by current user
+  updateMyEventList(city) {
+    if (this.state.validatedToken) {
+      const requestOptions = {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Token ${this.state.validatedToken}`,
+        },
+      };
+      fetch(
+        `${this.state.apiEndpint}/api/v0/event/myrecent/${city}`,
+        requestOptions
+      )
+        .then((response) => response.json())
+        .then((json) => {
+          let result = [];
+          json.forEach((item) => {
+            result.push(item.uuid);
+          });
+          this.setState({ myEvents: result });
+          console.log("loaded my events from backend");
+        });
     }
-    const popupContent = `<Popup><h5>${feature.properties.title}${dateString}</h5><p>${feature.properties.message}</p></pre></Popup>`;
-    layer.bindPopup(popupContent);
   }
 
-  // Icon for marker
-  pointToLayer(feature, latlng) {
-    return L.marker(latlng, {
-      icon: EventIcons.getIcon(feature.properties.type),
+  handleDeleteModalShow = (event) => {
+    this.setState({
+      showDeleteModal: true,
+      deleteEventTarget: event.currentTarget.id,
     });
+  };
+
+  handleDeleteModalHide = (event) => {
+    this.setState({ showDeleteModal: false, deleteEventTarget: "" });
+  };
+
+  // removes an event from state.data
+  handleDeleteSubmit = (event) => {
+    this.setState({
+      data: this.removeEvent(this.state.data, this.state.deleteEventTarget),
+      showDeleteModal: false,
+      deleteEventTarget: "",
+    });
+  };
+
+  // the webcall to server to remove event
+  removeEvent(rawdata, eventId) {
+    const requestOptions = {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Token ${this.state.validatedToken}`,
+      },
+      body: JSON.stringify({
+        visible: false,
+      }),
+    };
+    fetch(
+      `${this.state.apiEndpint}/api/v0/event/edit/${eventId}`,
+      requestOptions
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw response;
+        }
+        return response.json();
+      })
+      .then((json) => {})
+      .catch((response) => console.log(response));
+    let cleanedData = [];
+    rawdata.forEach((item) => {
+      if (item.uuid == eventId) {
+      } else {
+        cleanedData.push(item);
+      }
+    });
+    return cleanedData;
   }
 
   // removes all temp events that are older than 2 hours
+  // TBD: this should set state with new data
   removeOldEvents(rawdata) {
     let cleanedData = [];
     let currentTime = Date.now();
@@ -247,65 +335,72 @@ class App extends React.Component {
     return cleanedData;
   }
 
-  // Construct GeoJson from raw data
-  convertDataToGeoJson(rawdata) {
-    // construct a GeoJSON
-    let cleanedgeojson = {};
+  sortEventData(rawdata) {
+    let result = {};
     rawdata.forEach((item) => {
-      let newFeature = {
-        type: "Feature",
-        properties: {
-          uuid: item.uuid,
-          user: null,
-          title: item.title,
-          message: item.message,
-          type: item.event_type,
-          time: item.event_time,
-          temp: item.temp,
-        },
-        geometry: {
-          type: "Point",
-          coordinates: [item.lng, item.lat],
-        },
-      };
-      if (item.event_type in cleanedgeojson) {
-        cleanedgeojson[item.event_type].features.push(newFeature);
+      if (item.event_type in result) {
+        result[item.event_type].push(item);
       } else {
-        cleanedgeojson[item.event_type] = {
-          type: "FeatureCollection",
-          name: item.event_type,
-          crs: {
-            type: "name",
-            properties: {
-              name: "urn:ogc:def:crs:OGC:1.3:CRS84",
-            },
-          },
-          features: [newFeature],
-        };
+        result[item.event_type] = [item];
       }
     });
-    return cleanedgeojson;
+    return result;
   }
 
-  // Render the markers from GeoJSON
+  // renders the layergroup for leaflet
   constructLayerGroup(rawdata) {
     const { BaseLayer, Overlay } = LayersControl;
     let layerGroup = [];
     if (this.state.loaded) {
       let newdata = this.removeOldEvents(rawdata);
-      let data = this.convertDataToGeoJson(newdata);
-      // console.log(data)
-      for (var key in data) {
+      let data = this.sortEventData(newdata);
+      for (let key in data) {
+        let events = [];
+        let eventArray = data[key];
+        eventArray.forEach((feature) => {
+          let dateString = "";
+          if (feature.temp) {
+            let date = new Date(Date.parse(feature.event_time));
+            let localDate = date.toLocaleString("us", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            });
+            dateString = ` <${localDate}>`;
+          }
+          let deleteButton = "";
+          if (this.state.myEvents.includes(feature.uuid)) {
+            deleteButton = (
+              <Button
+                id={feature.uuid}
+                bsPrefix="delete"
+                onClick={this.handleDeleteModalShow}
+              >
+                🗑️
+              </Button>
+            );
+          }
+
+          events.push(
+            <FeatureGroup>
+              <Popup>
+                <h5>
+                  {feature.title}
+                  {dateString}
+                </h5>
+                <p>{feature.message}</p>
+                {deleteButton}
+              </Popup>
+              <Marker
+                position={[feature.lat, feature.lng]}
+                icon={EventIcons.getIcon(key)}
+              />
+            </FeatureGroup>
+          );
+        });
         layerGroup.push(
           <Overlay checked name={key}>
-            <LayerGroup>
-              <GeoJSON
-                key={hash(this.state.latestEvent)}
-                pointToLayer={this.pointToLayer}
-                data={data[key]}
-                onEachFeature={this.onEachFeature}
-              />
-            </LayerGroup>
+            <LayerGroup>{events}</LayerGroup>
           </Overlay>
         );
       }
@@ -327,6 +422,7 @@ class App extends React.Component {
     this.setState({ loginToken: event.target.value });
   };
 
+  // log in with a token
   handleLoginSubmit = (event) => {
     // check if valid token exist, if yes, do nothing
     if (this.state.validatedToken) {
@@ -411,7 +507,7 @@ class App extends React.Component {
     // this.setState({ showLoginModal: false });
   };
 
-  //
+  // change menu item between login and edit
   constructLoginOrEdit() {
     let result = "";
     if (!this.state.validatedToken) {
@@ -495,6 +591,7 @@ class App extends React.Component {
     this.setState({ newEventMessage: event.target.value });
   };
 
+  // webcall for new event
   handleNewEventSubmit = (event) => {
     const requestOptions = {
       method: "POST",
@@ -528,6 +625,7 @@ class App extends React.Component {
           newEventTitle: "",
           newEventMessage: "",
           newEventType: "Unknown",
+          myEvents: [...this.state.myEvents, json.uuid],
         });
       })
       .catch((response) => console.log(response));
@@ -570,6 +668,7 @@ class App extends React.Component {
     return results;
   }
 
+  // change map center to toast event location on click
   handleToastOnClick = (event) => {
     let toasts = this.state.toasts;
     let toast = toasts.get(event.target.id);
@@ -610,8 +709,7 @@ class App extends React.Component {
       currentCity: event.target.id,
       showLocationSelectModal: false,
     });
-    this.updateDataSource(event.target.id);
-    this.updateEventSource(event.target.id);
+    this.reloadData(event.target.id);
     //
   };
 
@@ -698,10 +796,12 @@ class App extends React.Component {
           onClick={this.handleMapClick}
           ref={this.mapRef}
           key={hash(this.state.data)}
+          onMoveEnd={this.onMoveEnd}
+          onZoomEnd={this.onZoomEnd}
         >
           <LayersControl position="topleft">
             <TileLayer
-              attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+              attribution='&amp;copy <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> <a href="https://www.mapbox.com/map-feedback/#/-74.5/40/10">Improve this map</a>'
               url="https://api.mapbox.com/styles/v1/bigboyonthestreeet/ckbshbiqx0v3x1inyld1izkp5/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYmlnYm95b250aGVzdHJlZWV0IiwiYSI6ImNrYXkzanI4MzBlZDQzMm9hc2dqeGR3dWkifQ.HKcbnYgCvUovWvKfBKElhA"
             />
             {this.constructLayerGroup(this.state.data)}
@@ -874,12 +974,16 @@ class App extends React.Component {
         <div
           style={{
             position: "absolute",
-            bottom: 20,
+            bottom: 0,
             left: 10,
             zIndex: 1000,
           }}
         >
-          <Image className="logo-btm" src="logo.png" fluid rounded />
+          <div>
+            <Image className="logo-btm" src="logo.png" fluid rounded />
+          </div>
+
+          <Image src="mapbox_logo.png" />
         </div>
 
         <Modal
@@ -899,6 +1003,26 @@ class App extends React.Component {
           </Modal.Header>
           <Modal.Body>
             <ListGroup>{this.constructCitiesListGroup()}</ListGroup>
+          </Modal.Body>
+        </Modal>
+
+        <Modal
+          show={this.state.showDeleteModal}
+          onHide={this.handleDeleteModalHide}
+          size="lg"
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Delete this?</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Button
+              variant="primary"
+              type="submit"
+              onClick={this.handleDeleteSubmit}
+            >
+              Delete
+            </Button>
           </Modal.Body>
         </Modal>
       </>
