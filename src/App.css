@@ -137,7 +137,7 @@ a {
   color: #ff5757;
 }
 
-#delete {
+.delete {
   position: absolute;
   bottom: 0px;
   right: -5px;
