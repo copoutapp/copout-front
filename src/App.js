@@ -142,7 +142,7 @@ class App extends React.Component {
       showLoginFailure: false,
       loginToken: "",
       validatedToken: this.cookies.get("validatedToken") || "",
-      allowEdit: this.cookies.get("allowEdit") == "true" || false,
+      allowEdit: this.cookies.get("allowEdit") === "true" || false,
       showDeleteModal: false,
       deleteEventTarget: "",
       showNewEventModal: false,
@@ -309,7 +309,7 @@ class App extends React.Component {
       .catch((response) => console.log(response));
     let cleanedData = [];
     rawdata.forEach((item) => {
-      if (item.uuid == eventId) {
+      if (item.uuid === eventId) {
       } else {
         cleanedData.push(item);
       }
@@ -349,7 +349,7 @@ class App extends React.Component {
 
   // renders the layergroup for leaflet
   constructLayerGroup(rawdata) {
-    const { BaseLayer, Overlay } = LayersControl;
+    const { Overlay } = LayersControl;
     let layerGroup = [];
     if (this.state.loaded) {
       let newdata = this.removeOldEvents(rawdata);
@@ -376,7 +376,7 @@ class App extends React.Component {
                 bsPrefix="delete"
                 onClick={this.handleDeleteModalShow}
               >
-                🗑️
+              <span role="img" aria-label="delete">🗑️</span>
               </Button>
             );
           }
