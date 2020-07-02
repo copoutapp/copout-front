@@ -318,6 +318,7 @@ class App extends React.Component {
   }
 
   // removes all temp events that are older than 2 hours
+  // TBD: this should set state with new data
   removeOldEvents(rawdata) {
     let cleanedData = [];
     let currentTime = Date.now();
@@ -334,44 +335,16 @@ class App extends React.Component {
     return cleanedData;
   }
 
-  // Construct GeoJson from raw data
-  convertDataToGeoJson(rawdata) {
-    // construct a GeoJSON
-    let cleanedgeojson = {};
+  sortEventData(rawdata) {
+    let result = {};
     rawdata.forEach((item) => {
-      let newFeature = {
-        type: "Feature",
-        properties: {
-          uuid: item.uuid,
-          user: null,
-          title: item.title,
-          message: item.message,
-          type: item.event_type,
-          time: item.event_time,
-          temp: item.temp,
-        },
-        geometry: {
-          type: "Point",
-          coordinates: [item.lng, item.lat],
-        },
-      };
-      if (item.event_type in cleanedgeojson) {
-        cleanedgeojson[item.event_type].features.push(newFeature);
+      if (item.event_type in result) {
+        result[item.event_type].push(item);
       } else {
-        cleanedgeojson[item.event_type] = {
-          type: "FeatureCollection",
-          name: item.event_type,
-          crs: {
-            type: "name",
-            properties: {
-              name: "urn:ogc:def:crs:OGC:1.3:CRS84",
-            },
-          },
-          features: [newFeature],
-        };
+        result[item.event_type] = [item];
       }
     });
-    return cleanedgeojson;
+    return result;
   }
 
   // renders the layergroup for leaflet
@@ -380,15 +353,14 @@ class App extends React.Component {
     let layerGroup = [];
     if (this.state.loaded) {
       let newdata = this.removeOldEvents(rawdata);
-      let data = this.convertDataToGeoJson(newdata);
-      // console.log(data)
+      let data = this.sortEventData(newdata);
       for (let key in data) {
         let events = [];
-        let eventArray = data[key].features;
+        let eventArray = data[key];
         eventArray.forEach((feature) => {
           let dateString = "";
-          if (feature.properties.temp) {
-            let date = new Date(Date.parse(feature.properties.time));
+          if (feature.temp) {
+            let date = new Date(Date.parse(feature.event_time));
             let localDate = date.toLocaleString("us", {
               hour: "2-digit",
               minute: "2-digit",
@@ -397,12 +369,9 @@ class App extends React.Component {
             dateString = ` <${localDate}>`;
           }
           let deleteButton = "";
-          if (this.state.myEvents.includes(feature.properties.uuid)) {
+          if (this.state.myEvents.includes(feature.uuid)) {
             deleteButton = (
-              <Button
-                id={feature.properties.uuid}
-                onClick={this.handleDeleteModalShow}
-              >
+              <Button id={feature.uuid} onClick={this.handleDeleteModalShow}>
                 🗑️
               </Button>
             );
@@ -412,17 +381,14 @@ class App extends React.Component {
             <FeatureGroup>
               <Popup>
                 <h5>
-                  {feature.properties.title}
+                  {feature.title}
                   {dateString}
                 </h5>
-                <p>{feature.properties.message}</p>
+                <p>{feature.message}</p>
                 {deleteButton}
               </Popup>
               <Marker
-                position={[
-                  feature.geometry.coordinates[1],
-                  feature.geometry.coordinates[0],
-                ]}
+                position={[feature.lat, feature.lng]}
                 icon={EventIcons.getIcon(key)}
               />
             </FeatureGroup>
