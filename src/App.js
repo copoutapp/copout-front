@@ -90,6 +90,7 @@ class Cities {
   static allCitiesArray = [
     new City("Chicago", [41.881735, -87.630648]),
     new City("Minneapolis", [44.980243, -93.264739]),
+    new City("Portland", [45.5186167, -122.6872967]),
     new City("Seattle", [47.6054116, -122.3348554]),
     new City("Toronto", [43.6447352, -79.3952525]),
   ];
