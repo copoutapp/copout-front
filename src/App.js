@@ -146,6 +146,9 @@ class App extends React.Component {
       allowEdit: this.cookies.get("allowEdit") === "true" || false,
       showDeleteModal: false,
       deleteEventTarget: "",
+      showReportModal: false,
+      reportEventTarget: "",
+      reportEventMessage: "",
       showNewEventModal: false,
       showNewEventMarker: false,
       newEventLatLng: null,
@@ -318,6 +321,56 @@ class App extends React.Component {
     return cleanedData;
   }
 
+  // for reporting bad information
+  handleReportModalShow = (event) => {
+    this.setState({
+      showReportModal: true,
+      reportEventTarget: event.currentTarget.id,
+    });
+  };
+
+  handleReportModalHide = (event) => {
+    this.setState({ showReportModal: false, reportEventTarget: "" });
+  };
+
+  handleReportEventMessageChange = (event) => {
+    this.setState({ reportEventMessage: event.target.value });
+  };
+
+  handleReportSubmit = (event) => {
+    const requestOptions = {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Token ${this.state.validatedToken}`,
+      },
+      body: JSON.stringify({
+        event: this.state.reportEventTarget,
+        message: this.state.reportEventMessage,
+      }),
+    };
+
+    // TBD this is a proxy, need to fix this
+    fetch(`${this.state.apiEndpint}/api/v0/event/report`, requestOptions)
+      .then((response) => {
+        if (!response.ok) {
+          throw response;
+        }
+        return response.json();
+      })
+      .then((json) => {
+        this.setState({
+          showReportModal: false,
+          reportEventTarget: "",
+          reportEventMessage: "",
+        });
+      })
+      .catch((response) => console.log(response));
+    // TBD handle error here
+    event.preventDefault();
+  };
+
   // removes all temp events that are older than 2 hours
   // TBD: this should set state with new data
   removeOldEvents(rawdata) {
@@ -377,7 +430,23 @@ class App extends React.Component {
                 bsPrefix="delete"
                 onClick={this.handleDeleteModalShow}
               >
-              <span role="img" aria-label="delete">🗑️</span>
+                <span role="img" aria-label="delete">
+                  🗑️
+                </span>
+              </Button>
+            );
+          }
+          let reportButton = "";
+          if (this.state.validatedToken && deleteButton === "") {
+            reportButton = (
+              <Button
+                id={feature.uuid}
+                bsPrefix="delete"
+                onClick={this.handleReportModalShow}
+              >
+                <span role="img" aria-label="report">
+                  🏴
+                </span>
               </Button>
             );
           }
@@ -391,6 +460,7 @@ class App extends React.Component {
                 </h5>
                 <p>{feature.message}</p>
                 {deleteButton}
+                {reportButton}
               </Popup>
               <Marker
                 position={[feature.lat, feature.lng]}
@@ -859,12 +929,12 @@ class App extends React.Component {
           dialogClassName="modal-bottom"
         >
           <Modal.Header closeButton>
-            <Modal.Title>Report a new event</Modal.Title>
+            <Modal.Title>Submit a new event</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Form onSubmit={this.handleNewEventSubmit}>
               <Form.Group controlId="formType">
-                <Form.Label>Report Type</Form.Label>
+                <Form.Label>Event Type</Form.Label>
                 <Form.Control
                   as="select"
                   value={this.state.newEventType}
@@ -874,7 +944,7 @@ class App extends React.Component {
                 </Form.Control>
               </Form.Group>
               <Form.Group controlId="formTitle">
-                <Form.Label>Report Title</Form.Label>
+                <Form.Label>Event Title</Form.Label>
                 <Form.Control
                   required
                   type="text"
@@ -1024,6 +1094,32 @@ class App extends React.Component {
             >
               Delete
             </Button>
+          </Modal.Body>
+        </Modal>
+
+        <Modal
+          show={this.state.showReportModal}
+          onHide={this.handleReportModalHide}
+          size="lg"
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Report this for bad info</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form onSubmit={this.handleReportSubmit}>
+              <Form.Group controlId="reportMessage">
+                <Form.Control
+                  type="text"
+                  placeholder="Details please"
+                  value={this.state.reportEventMessage}
+                  onChange={this.handleReportEventMessageChange}
+                />
+              </Form.Group>
+              <Button variant="primary" type="submit">
+                Report
+              </Button>
+            </Form>
           </Modal.Body>
         </Modal>
       </>
