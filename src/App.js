@@ -415,10 +415,9 @@ class App extends React.Component {
           let dateString = "";
           if (feature.temp) {
             let date = new Date(Date.parse(feature.event_time));
-            let localDate = date.toLocaleString("us", {
+            let localDate = date.toLocaleString("en-GB", {
               hour: "2-digit",
               minute: "2-digit",
-              hour12: false,
             });
             dateString = ` <${localDate}>`;
           }
